@@ -1,0 +1,134 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Artículo - GE Abogados">
+    <div class="min-h-screen bg-[var(--color-primary-light)] pt-32 pb-24">
+        <!-- Banner/Hero Minimalist -->
+        <div id="blog-header" class="max-w-4xl mx-auto px-4 mb-12 opacity-0 transition-opacity duration-1000">
+            <div class="mb-4">
+                <span id="blog-category" class="text-xs uppercase tracking-[0.2em] font-bold text-[var(--color-accent-gold)]">Categoría</span>
+                <span id="blog-date" class="text-xs uppercase tracking-widest text-gray-400 ml-4">Fecha</span>
+            </div>
+            <h1 id="blog-title" class="text-4xl md:text-6xl font-serif text-[var(--color-primary-dark)] leading-tight mb-8">
+                Cargando artículo...
+            </h1>
+            <div id="blog-summary" class="text-xl text-[var(--color-text-body)] font-light leading-relaxed italic border-l-4 border-[var(--color-accent-gold)] pl-6 py-2">
+                ...
+            </div>
+        </div>
+
+        <!-- Portada Portrait/Landscape mixed -->
+        <div id="blog-image-container" class="max-w-6xl mx-auto px-4 mb-20 hidden">
+            <div class="aspect-video overflow-hidden border border-gray-200">
+                <img id="blog-image" src="" alt="Portada" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 grayscale opacity-90">
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <article class="max-w-3xl mx-auto px-6">
+            <div id="blog-content" class="editorial-content prose prose-lg prose-serif text-[var(--color-text-body)] leading-loose opacity-0 transition-opacity duration-1000">
+                <!-- Se inyectará el HTML del Quill -->
+            </div>
+            
+            <div class="mt-24 pt-12 border-t border-gray-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase font-bold tracking-widest text-gray-400 mb-1">Autor</p>
+                    <p class="font-serif text-[var(--color-primary-dark)]">Firma GE Abogados</p>
+                </div>
+                <a href="/#blog" class="btn-editorial-outline px-8 py-3 text-xs uppercase tracking-widest font-bold">Volver al Blog</a>
+            </div>
+        </article>
+    </div>
+
+    <!-- Estilo específico para el contenido inyectado (Mirroring Quill style) -->
+    <style is:inline>
+        .editorial-content p {
+            margin-bottom: 2rem;
+            font-size: 1.15rem;
+            line-height: 2;
+            word-wrap: break-word;
+        }
+        .editorial-content h2, .editorial-content h3 {
+            font-family: 'Playfair Display', serif;
+            color: #111827;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        .editorial-content h2 { font-size: 2.2rem; }
+        .editorial-content h3 { font-size: 1.8rem; }
+        .editorial-content blockquote {
+            border-left: 2px solid #D4AF37;
+            padding-left: 1.5rem;
+            font-style: italic;
+            font-size: 1.25rem;
+            color: #4B5563;
+            margin: 3rem 0;
+        }
+        .editorial-content img {
+            max-width: 100%;
+            height: auto;
+            margin: 3rem auto;
+            display: block;
+            border-radius: 2px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .editorial-content strong {
+            color: #111827;
+            font-weight: 700;
+        }
+    </style>
+
+    <script is:inline>
+        async function loadBlogPost() {
+            const API_BASE = 'https://app.geabogados.com.co/api/v1';
+            const urlParams = new URLSearchParams(window.location.search);
+            const slug = urlParams.get('s');
+
+            if (!slug) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                // Buscamos el blog por slug en la lista pública
+                const res = await fetch(`${API_BASE}/blogs/`);
+                if (!res.ok) throw new Error("Fallo al conectar");
+                const blogs = await res.json();
+                
+                // Encontrar el artículo específico
+                const blog = blogs.find(b => b.slug === slug);
+                
+                if (!blog) {
+                    document.getElementById('blog-title').textContent = "Artículo no encontrado";
+                    return;
+                }
+
+                // Inyectar Datos
+                document.title = `${blog.title} - GE Abogados`;
+                document.getElementById('blog-title').textContent = blog.title;
+                document.getElementById('blog-category').textContent = blog.category || "General";
+                document.getElementById('blog-date').textContent = new Date(blog.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                document.getElementById('blog-summary').textContent = blog.summary || "";
+                document.getElementById('blog-content').innerHTML = blog.content;
+                
+                if (blog.image_url) {
+                    const imgEl = document.getElementById('blog-image');
+                    imgEl.src = blog.image_url;
+                    document.getElementById('blog-image-container').classList.remove('hidden');
+                }
+
+                // Fade in
+                document.getElementById('blog-header').style.opacity = '1';
+                document.getElementById('blog-content').style.opacity = '1';
+
+            } catch (error) {
+                console.error("Error cargando el blog", error);
+                document.getElementById('blog-title').textContent = "Error al cargar";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadBlogPost);
+    </script>
+</Layout>

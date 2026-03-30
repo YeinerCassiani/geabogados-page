@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+@theme {
+    --font-serif: "Playfair Display", serif;
+    --font-sans: "Montserrat", sans-serif;
+
+    --color-primary-dark: #111827;
+    /* Rich Charcoal */
+    --color-primary-light: #FDFBF7;
+    /* Off-white / Cream */
+    --color-accent-gold: #D4AF37;
+    /* Muted Gold */
+    --color-accent-slate: #1E293B;
+    /* Deep Slate Blue */
+    --color-text-body: #374151;
+    /* Softer gray for body text */
+}
+
+/* Base Styles */
+body {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-serif {
+    font-family: var(--font-serif);
+}
+
+/* Custom Textures and Gradients */
+.hero-gradient {
+    /* Subtle noise texture over a very soft radial gradient */
+    background: radial-gradient(circle at 50% 50%, rgba(20, 24, 39, 0.05), rgba(253, 251, 247, 1)), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    background-color: var(--color-primary-light);
+}
+
+.noise-bg {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* Animations - Refined and slower */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeReveal {
+    from {
+        opacity: 0;
+        clip-path: inset(0 0 100% 0);
+    }
+
+    to {
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+@keyframes scaleImage {
+    from {
+        transform: scale(1.05);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-reveal {
+    animation: fadeReveal 1.5s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+.animate-scale {
+    animation: scaleImage 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.scroll-smooth {
+    scroll-behavior: smooth;
+}
+
+/* Micro-interactions */
+.editorial-hover {
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-hover:hover {
+    transform: translateY(-4px);
+}
+
+.link-underline {
+    position: relative;
+}
+
+.link-underline::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 1px;
+    bottom: -2px;
+    left: 0;
+    background-color: currentColor;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.link-underline:hover::after {
+    width: 100%;
+}
+
+/* Boton agendar */
+#btn-agendar {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    background-color: var(--color-primary-dark);
+    color: var(--color-primary-light);
+}
+
+#btn-agendar:hover {
+    background-color: var(--color-accent-gold);
+}
+
+#btn-agendar:hover span {
+    color: #fff !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* Editorial Button Setup */
+.btn-editorial {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    background-color: var(--color-primary-dark);
+    color: var(--color-primary-light);
+    border: 1px solid var(--color-primary-dark);
+    cursor: pointer;
+}
+
+.btn-editorial::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-accent-gold);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 0;
+}
+
+.btn-editorial:hover {
+    color: var(--color-primary-dark);
+    border-color: var(--color-accent-gold);
+}
+
+.btn-editorial:hover::before {
+    transform: translateY(0);
+}
+
+.btn-editorial span {
+    position: relative;
+    z-index: 1;
+}
+
+/* Outline Button */
+.btn-editorial-outline {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    background-color: transparent;
+    color: var(--color-primary-dark);
+    border: 1px solid var(--color-primary-dark);
+    cursor: pointer;
+}
+
+.btn-editorial-outline:hover {
+    background-color: var(--color-primary-dark);
+    color: var(--color-primary-light);
+}
+
+/* Parallax element smoothing */
+.parallax-element {
+    will-change: transform;
+}
