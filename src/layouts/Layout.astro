@@ -1,4 +1,5 @@
 ---
+import '../styles/global.css';
 // src/layouts/Layout.astro
 export interface Props {
     title: string;
@@ -62,8 +63,7 @@ const schema = {
     <!-- Schema.org JSON-LD -->
     <script type="application/ld+json" set:html={JSON.stringify(schema)} />
 
-    <!-- Importar los estilos de Tailwind -->
-    <link rel="stylesheet" href="/src/styles/global.css">
+    <!-- Importar los estilos de Tailwind (Auto-bundled by Astro) -->
     
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
