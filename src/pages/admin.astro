@@ -45,6 +45,11 @@ import Layout from '../layouts/Layout.astro';
                     <h2 class="text-xl font-serif text-[var(--color-primary-dark)]">Historial</h2>
                     <button id="btn-new-post" class="text-xs font-bold uppercase tracking-widest text-[var(--color-accent-gold)]">+ Nuevo</button>
                 </div>
+                <div class="relative mb-4">
+                    <input id="posts-search" type="text" placeholder="Buscar por título..." autocomplete="off" class="w-full border border-gray-200 pl-3 pr-8 py-2 text-sm bg-transparent text-[var(--color-primary-dark)] focus:outline-none focus:border-[var(--color-accent-gold)] transition-colors">
+                    <button id="posts-search-clear" type="button" aria-label="Limpiar búsqueda" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-lg leading-none">&times;</button>
+                </div>
+                <p id="posts-count" class="text-[10px] text-gray-400 uppercase tracking-widest mb-3"></p>
                 <div id="posts-list" class="space-y-4">
                     <p class="text-xs text-gray-400 italic font-sans">Cargando entradas...</p>
                 </div>
@@ -230,6 +235,57 @@ import Layout from '../layouts/Layout.astro';
 
             btnNewPost.addEventListener('click', () => setFormState(null));
 
+            // Buscar por título en el historial
+            const postsSearch = document.getElementById('posts-search');
+            const postsSearchClear = document.getElementById('posts-search-clear');
+            if (postsSearch) postsSearch.addEventListener('input', applyPostsFilter);
+            if (postsSearchClear) postsSearchClear.addEventListener('click', () => {
+                if (postsSearch) { postsSearch.value = ''; postsSearch.focus(); }
+                applyPostsFilter();
+            });
+
+            function normalizeText(s) {
+                return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            }
+
+            function renderPostsList(list) {
+                postsList.innerHTML = '';
+                const countEl = document.getElementById('posts-count');
+                if (!list || list.length === 0) {
+                    const hasPosts = currentBlogsList && currentBlogsList.length;
+                    postsList.innerHTML = `<p class="text-xs text-gray-400 italic font-sans">${hasPosts ? 'Sin resultados para tu búsqueda.' : 'No hay entradas.'}</p>`;
+                    if (countEl) countEl.textContent = hasPosts ? `0 de ${currentBlogsList.length}` : '';
+                    return;
+                }
+                if (countEl) countEl.textContent = (list.length === currentBlogsList.length)
+                    ? `${list.length} entrada${list.length === 1 ? '' : 's'}`
+                    : `${list.length} de ${currentBlogsList.length}`;
+                list.forEach(blog => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 border border-gray-100 rounded hover:bg-gray-50 cursor-pointer transition-colors';
+                    const pubTag = blog.is_published ? '<span class="text-[10px] bg-green-100 text-green-800 px-1 rounded ml-2">Pub</span>' : '<span class="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded ml-2">Borr</span>';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <p class="text-sm font-serif font-bold text-[var(--color-primary-dark)] truncate tooltip flex-1">${blog.title}</p>
+                            <a href="/blog/?s=${blog.slug}" target="_blank" class="ml-2 text-[10px] text-[var(--color-accent-gold)] hover:underline">Ver ↗</a>
+                        </div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">${new Date(blog.created_at).toLocaleDateString()}${pubTag}</p>
+                    `;
+                    div.querySelector('a').addEventListener('click', (ev) => ev.stopPropagation());
+                    div.addEventListener('click', () => setFormState(blog));
+                    postsList.appendChild(div);
+                });
+            }
+
+            function applyPostsFilter() {
+                const input = document.getElementById('posts-search');
+                const clearBtn = document.getElementById('posts-search-clear');
+                const q = normalizeText(input ? input.value : '').trim();
+                if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+                if (!q) { renderPostsList(currentBlogsList); return; }
+                renderPostsList(currentBlogsList.filter(b => normalizeText(b.title).includes(q)));
+            }
+
             async function loadBlogHistory() {
                 try {
                     const res = await fetch(`${API_BASE}/blogs/?public_only=false`, {
@@ -240,27 +296,10 @@ import Layout from '../layouts/Layout.astro';
                     
                     const data = await res.json();
                     currentBlogsList = Array.isArray(data) ? data : (data.items || []);
-                    
-                    postsList.innerHTML = '';
-                    if (currentBlogsList.length === 0) {
-                        postsList.innerHTML = '<p class="text-xs text-gray-400 italic font-sans">No hay entradas.</p>';
-                        return;
-                    }
-                    
-                    currentBlogsList.forEach(blog => {
-                        const div = document.createElement('div');
-                        div.className = 'p-3 border border-gray-100 rounded hover:bg-gray-50 cursor-pointer transition-colors';
-                        const pubTag = blog.is_published ? '<span class="text-[10px] bg-green-100 text-green-800 px-1 rounded ml-2">Pub</span>' : '<span class="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded ml-2">Borr</span>';
-                        div.innerHTML = `
-                            <div class="flex justify-between items-start">
-                                <p class="text-sm font-serif font-bold text-[var(--color-primary-dark)] truncate tooltip flex-1">${blog.title}</p>
-                                <a href="/blog/?s=${blog.slug}" target="_blank" class="ml-2 text-[10px] text-[var(--color-accent-gold)] hover:underline">Ver ↗</a>
-                            </div>
-                            <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">${new Date(blog.created_at).toLocaleDateString()}${pubTag}</p>
-                        `;
-                        div.addEventListener('click', () => setFormState(blog));
-                        postsList.appendChild(div);
-                    });
+                    // Más recientes primero
+                    currentBlogsList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                    applyPostsFilter();
                 } catch (error) {
                     console.error("No se pudo cargar el historial", error);
                 }
