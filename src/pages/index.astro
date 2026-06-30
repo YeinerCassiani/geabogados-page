@@ -326,7 +326,7 @@ import Layout from '../layouts/Layout.astro';
                 <div>
                     <h2 class="text-4xl md:text-5xl font-serif text-[var(--color-primary-dark)]" data-translate="blog-title">INTELECTO &<br><span class="italic text-[var(--color-accent-gold)]">ANÁLISIS</span></h2>
                 </div>
-                <button class="mt-6 md:mt-0 font-bold uppercase tracking-widest text-xs border-b border-[var(--color-primary-dark)] pb-1 hover:text-[var(--color-accent-gold)] hover:border-[var(--color-accent-gold)] transition-colors" data-translate="view-all-posts">
+                <button id="view-all-posts-btn" type="button" class="mt-6 md:mt-0 font-bold uppercase tracking-widest text-xs border-b border-[var(--color-primary-dark)] pb-1 hover:text-[var(--color-accent-gold)] hover:border-[var(--color-accent-gold)] transition-colors">
                     Explorar Ediciones
                 </button>
             </div>
@@ -453,26 +453,29 @@ import Layout from '../layouts/Layout.astro';
     </button>
 
     <script>
-        // Fetch Blogs dynamically
-        async function fetchDynamicBlogs() {
-            try {
-                const res = await fetch('https://app.geabogados.com.co/api/v1/blogs/');
-                if (!res.ok) return;
-                const blogs = await res.json();
-                const container = document.getElementById('dynamic-blogs-container');
-                if (container && blogs && blogs.length > 0) {
-                    container.innerHTML = ''; // Limpiar skeletons
-                    blogs.slice(0, 4).forEach(blog => {
-                        const date = new Date(blog.created_at).toLocaleDateString('es-ES', {day: 'numeric', month: 'short'});
-                        const image = blog.image_url || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=400&q=80';
-                        const cat = blog.category || 'Análisis';
-                        
-                        container.innerHTML += `
-                        <a href="/blog/?s=${blog.slug}" class="group relative block transition-transform hover:-translate-y-1">
+        // Blogs dinámicos: estado + render con expandir/colapsar
+        let allBlogs = [];
+        let blogsExpanded = false;
+        const BLOGS_PREVIEW_COUNT = 4;
+
+        function currentLangCode() {
+            const t = document.getElementById('langToggle');
+            // El botón muestra el idioma DESTINO: si dice "ES", el actual es inglés.
+            return (t && t.textContent.trim().toUpperCase() === 'ES') ? 'en' : 'es';
+        }
+
+        function blogCardHTML(blog) {
+            const lang = currentLangCode();
+            const date = new Date(blog.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short' });
+            const image = blog.image_url || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=400&q=80';
+            const cat = blog.category || 'Análisis';
+            const safeAlt = (blog.title || '').replace(/"/g, '&quot;');
+            return `
+                        <a href="/blog/?s=${encodeURIComponent(blog.slug)}" class="group relative block transition-transform hover:-translate-y-1">
                             <article class="relative cursor-pointer">
                                 <div class="aspect-[4/3] overflow-hidden mb-6">
-                                    <img src="${image}" 
-                                         alt="${blog.title}" loading="lazy"
+                                    <img src="${image}"
+                                         alt="${safeAlt}" loading="lazy"
                                          class="w-full h-full object-cover grayscale opacity-90 transition-all duration-700 group-hover:grayscale-0 group-hover:scale-105">
                                 </div>
                                 <div>
@@ -483,10 +486,41 @@ import Layout from '../layouts/Layout.astro';
                                 </div>
                             </article>
                         </a>`;
-                    });
-                } else if (container) {
-                    container.innerHTML = '<p class="text-sm font-sans font-light italic text-gray-500">Aún no hay publicaciones disponibles.</p>';
+        }
+
+        function renderBlogs() {
+            const container = document.getElementById('dynamic-blogs-container');
+            const btn = document.getElementById('view-all-posts-btn');
+            if (!container) return;
+            if (!allBlogs.length) {
+                container.innerHTML = '<p class="text-sm font-sans font-light italic text-gray-500">Aún no hay publicaciones disponibles.</p>';
+                if (btn) btn.style.display = 'none';
+                return;
+            }
+            const list = blogsExpanded ? allBlogs : allBlogs.slice(0, BLOGS_PREVIEW_COUNT);
+            container.innerHTML = list.map(blogCardHTML).join('');
+            if (btn) {
+                if (allBlogs.length <= BLOGS_PREVIEW_COUNT) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = '';
+                    const en = currentLangCode() === 'en';
+                    btn.textContent = blogsExpanded ? (en ? 'Show less' : 'Ver menos') : (en ? 'Explore Editions' : 'Explorar Ediciones');
                 }
+            }
+        }
+
+        // Fetch Blogs dynamically
+        async function fetchDynamicBlogs() {
+            try {
+                const res = await fetch('https://app.geabogados.com.co/api/v1/blogs/?limit=100');
+                if (!res.ok) return;
+                const blogs = await res.json();
+                // Más recientes primero
+                allBlogs = (Array.isArray(blogs) ? blogs : []).sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                );
+                renderBlogs();
             } catch (error) {
                 console.error("Error al cargar blogs", error);
             }
@@ -495,6 +529,23 @@ import Layout from '../layouts/Layout.astro';
         // JavaScript para funcionalidad
         document.addEventListener('DOMContentLoaded', function() {
             fetchDynamicBlogs();
+
+            // Botón "Explorar Ediciones": muestra todas las entradas / vuelve a 4
+            const viewAllBtn = document.getElementById('view-all-posts-btn');
+            if (viewAllBtn) {
+                viewAllBtn.addEventListener('click', function() {
+                    blogsExpanded = !blogsExpanded;
+                    renderBlogs();
+                    const sec = document.getElementById('blog');
+                    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
+            // Al cambiar de idioma, re-render del bloque blog (etiqueta del botón + fechas)
+            document.addEventListener('click', function(e) {
+                if (e.target && (e.target.id === 'langToggle' || e.target.id === 'langToggleMobile')) {
+                    setTimeout(renderBlogs, 0);
+                }
+            });
             // Hero fade-in animations
             setTimeout(() => {
                 const heroContent = document.querySelector('.hero-content');
